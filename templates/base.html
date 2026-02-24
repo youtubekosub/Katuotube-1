@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>かつおTube</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        /* ページ読み込み時に設定を確認して即時反映（初期はライトモード） */
+        (function() {
+            const darkMode = localStorage.getItem('dark_mode');
+            if (darkMode === 'enabled') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+            }
+        })();
+    </script>
+    <style>
+        :root { --main: #0077be; --bg: #f9f9f9; --text: #0f0f0f; }
+        
+        /* ダークモード時のスタイル定義 */
+        [data-theme="dark"] {
+            --bg: #0f0f0f;
+            --text: #f1f1f1;
+        }
+
+        body { margin: 0; background: var(--bg); font-family: sans-serif; color: var(--text); transition: background-color 0.2s, color 0.2s; }
+        header { background: white; padding: 10px 20px; display: flex; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        
+        /* ダークモード時の要素調整 */
+        [data-theme="dark"] header { background: #1e1e1e; border-bottom: 1px solid #333; box-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+        [data-theme="dark"] #suggest-box { background: #2a2a2a; border-color: #444; color: white; }
+        [data-theme="dark"] .suggest-item:hover { background: #383838; }
+        [data-theme="dark"] .search-form input { background: #2a2a2a; color: white; border-color: #444; }
+        [data-theme="dark"] .search-form button { background: #333; border-color: #444; color: #aaa; }
+        [data-theme="dark"] .tool-link { background: #333; color: #ccc; border-color: #444; }
+
+        .logo { color: var(--main); font-weight: bold; font-size: 1.4rem; text-decoration: none; margin-right: 20px; }
+        .search-form { flex: 1; max-width: 600px; display: flex; margin: 0 auto; }
+        .search-form input { flex: 1; padding: 10px 15px; border: 1px solid #ccc; border-radius: 40px 0 0 40px; outline: none; }
+        .search-form button { padding: 0 20px; background: #f8f8f8; border: 1px solid #ccc; border-left: none; border-radius: 0 40px 40px 0; cursor: pointer; }
+        main { padding: 20px; }
+        #suggest-box { display: none; background: white; border: 1px solid #ccc; position: absolute; z-index: 1000; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .suggest-item { padding: 10px; cursor: pointer; }
+        .suggest-item:hover { background: #eee; }
+        /* ツールボタン（長方形）のスタイル */
+        .tool-link { margin-left: 10px; padding: 0 15px; background: #e0e0e0; border: 1px solid #ccc; border-radius: 4px; color: #606060; font-size: 0.9rem; text-decoration: none; display: flex; align-items: center; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="/" class="logo"><i class="fas fa-fish"></i> かつおTube</a>
+        <form action="/search" method="get" class="search-form">
+            <input type="text" name="q" placeholder="検索" autocomplete="off">
+            <button type="submit"><i class="fas fa-search"></i></button>
+            <a href="game.html" class="tool-link">game</a>
+            <a href="tool.html" class="tool-link">ツール</a>
+        </form>
+    </header>
+    <main>{% block content %}{% endblock %}</main>
+    <script>
+        const input = document.querySelector('input[name="q"]');
+        const box = document.getElementById('suggest-box') || document.createElement('div');
+        box.id = 'suggest-box'; document.body.appendChild(box);
+        input.addEventListener('input', async () => {
+            if (input.value.length < 2) { box.style.display = 'none'; return; }
+            const res = await fetch(`/api/suggestions?q=${input.value}`);
+            const data = await res.json();
+            box.innerHTML = data.map(s => `<div class="suggest-item">${s}</div>`).join('');
+            const rect = input.getBoundingClientRect();
+            box.style.left = rect.left + 'px'; box.style.top = rect.bottom + 'px';
+            box.style.width = rect.width + 'px'; box.style.display = 'block';
+            document.querySelectorAll('.suggest-item').forEach(i => i.onclick = () => { input.value = i.innerText; input.form.submit(); });
+        });
+    </script>
+    <script src="//accaii.com/sennin/script.js" async></script>
+    <noscript><img src="//accaii.com/sennin/script?guid=on"></noscript>
+</body>
+</html>
