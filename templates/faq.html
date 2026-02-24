@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .faq-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        animation: fadeIn 0.5s ease;
+    }
+    [data-theme="dark"] .faq-container {
+        background: #1e1e1e;
+        color: white;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+    .faq-header {
+        border-bottom: 2px solid var(--main);
+        margin-bottom: 25px;
+        padding-bottom: 10px;
+    }
+
+    /* アコーディオンのスタイル */
+    .faq-item {
+        border-bottom: 1px solid #eee;
+    }
+    [data-theme="dark"] .faq-item {
+        border-bottom-color: #333;
+    }
+    
+    .faq-question {
+        width: 100%;
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        background: none;
+        border: none;
+        text-align: left;
+        font-size: 1.05rem;
+        font-weight: bold;
+        color: inherit;
+        transition: background 0.2s;
+    }
+    .faq-question:hover {
+        background: rgba(0,0,0,0.02);
+    }
+    [data-theme="dark"] .faq-question:hover {
+        background: rgba(255,255,255,0.05);
+    }
+
+    .faq-answer {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+        background: #fcfcfc;
+    }
+    [data-theme="dark"] .faq-answer {
+        background: #252525;
+    }
+    .faq-answer-inner {
+        padding: 0 20px 20px 20px;
+        line-height: 1.6;
+        color: #555;
+    }
+    [data-theme="dark"] .faq-answer-inner {
+        color: #ccc;
+    }
+
+    /* アイコンの回転 */
+    .faq-icon {
+        transition: transform 0.3s;
+        color: var(--main);
+    }
+    .faq-item.active .faq-icon {
+        transform: rotate(180deg);
+    }
+    .faq-item.active .faq-answer {
+        max-height: 500px; /* 十分な高さを設定 */
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+<div class="faq-container">
+    <div class="faq-header">
+        <h2><i class="fas fa-question-circle"></i> よくある質問 (FAQ)</h2>
+        <p>困ったときはこちらを確認してください。それでも解決しなかったらお問い合わせへ</p>
+    </div>
+
+    <div class="faq-list">
+        <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">
+                <span>動画が再生されない場合はどうすればいいですか？</span>
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <div class="faq-answer-inner">
+                    再生サーバー（インスタンス）の調子が悪い可能性があります。動画ページの「モード切替」を試すか、ブラウザのキャッシュをクリアして再読み込みしてください。それでも解決しない場合インスタンスが落ちている可能性があります。
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">
+                <span>エラーが発生する</span>
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <div class="faq-answer-inner">
+                    どこのページかわからないと何とも言えないけど大量アクセスが原因かも
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">
+                <span>欲しい機能がある</span>
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <div class="faq-answer-inner">
+                    お問い合わせかスクラッチかぱどレットに来てね。
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">
+                <span>ダークモードへの切り替え方法は？</span>
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <div class="faq-answer-inner">
+                    ツールボックス内の「設定」ページから、デザインテーマを「ダーク」に変更して保存することができます。
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">
+                <span>再生履歴が保存されません。</span>
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <div class="faq-answer-inner">
+                    ブラウザのクッキー（Cookie）設定が無効になっている可能性があります。ブラウザの設定でクッキーを許可するか、シークレットモードを解除して試してください。
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">
+                <span>掲示板に不適切な投稿があります。</span>
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <div class="faq-answer-inner">
+                    お問い合わせフォームから、不適切な投稿の内容とURLをお知らせください。運営側で確認し、削除などの対応を行います。
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">
+                <span>かつおTubeを作りたい</span>
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <div class="faq-answer-inner">
+                    公式リポジトリからデプロイしてね　リポジトリ　https://github.com/youtubekosub/Katuotube-1/
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleFaq(button) {
+        const item = button.parentElement;
+        item.classList.toggle('active');
+        
+        // 他の項目を閉じる場合は以下を有効化
+        /*
+        document.querySelectorAll('.faq-item').forEach(otherItem => {
+            if (otherItem !== item) otherItem.classList.remove('active');
+        });
+        */
+    }
+</script>
+{% endblock %}
