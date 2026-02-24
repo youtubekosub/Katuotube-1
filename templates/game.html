@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .game-container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    [data-theme="dark"] .game-container {
+        background: #1e1e1e;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+    .game-header {
+        border-bottom: 2px solid var(--main);
+        margin-bottom: 25px;
+        padding-bottom: 10px;
+    }
+    .game-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+    }
+    .game-card {
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        overflow: hidden;
+        transition: transform 0.2s, border-color 0.2s;
+        text-decoration: none;
+        color: inherit;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+    }
+    [data-theme="dark"] .game-card {
+        background: #2a2a2a;
+        border-color: #333;
+    }
+    .game-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--main);
+    }
+    .game-thumb {
+        width: 100%;
+        aspect-ratio: 16/9;
+        background-color: #eee;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+    [data-theme="dark"] .game-thumb {
+        background-color: #333;
+    }
+    .game-info {
+        padding: 15px;
+    }
+    .game-info h3 { margin: 0 0 10px 0; font-size: 1.1rem; }
+    .game-info p { margin: 0; font-size: 0.85rem; color: #666; line-height: 1.4; }
+    [data-theme="dark"] .game-info p { color: #aaa; }
+</style>
+
+<div class="game-container">
+    <div class="game-header">
+        <h2><i class="fas fa-gamepad"></i> ゲーム</h2>
+        <p>ミニゲーム集だよ</p>
+    </div>
+
+    <div class="game-grid">
+        <a href="/snow.html" class="game-card">
+            <div class="game-thumb" style="background-image: url('https://assets.st-note.com/production/uploads/images/101205753/rectangle_large_type_2_e6d624826b8e66a702f6f8c8c1aaf58d.png?fit=bounds&quality=85&width=1280');"></div>
+            <div class="game-info">
+                <h3>Snow Game</h3>
+                <p>雪の中を突き進んで敵を吹っ飛ばそう！吹っ飛ばしまくって成長しよう。</p>
+            </div>
+        </a>
+
+        <a href="/2048.html" class="game-card">
+            <div class="game-thumb" style="background-image: url('https://play-lh.googleusercontent.com/I-cDz4JCEufeRmvJCYLJO_p9i4xCcToKpOtzwvwaYoHU1HmcglEHejPceMeNYSDBXAo'); background-size: contain;"></div>
+            <div class="game-info">
+                <h3>2048</h3>
+                <p>同じ数字のタイルを組み合わせて、2048を目指すパズルゲーム！</p>
+            </div>
+        </a>
+
+        <a href="/paperio.html" class="game-card">
+            <div class="game-thumb" style="background-image: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQb9aiF9p_UQKRhavwQSt3PE3hGRnJJip7IxmBf3pxALQ&s=10');"></div>
+            <div class="game-info">
+                <h3>paper.io</h3>
+                <p>自分の陣地を広げて世界を塗りつぶせ！他のプレイヤーに当たらないよう注意。</p>
+            </div>
+        </a>
+    </div>
+</div>
+{% endblock %}
