@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}ホーム - かつおTube{% endblock %}
+
+{% block extra_css %}
+<style>
+
+    .home-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 24px 16px;
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 16px;
+    }
+
+    .video-card {
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        cursor: pointer;
+    }
+
+    .thumbnail-container {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        border-radius: 12px;
+        overflow: hidden;
+        background-color: #e5e5e5;
+        transition: transform 0.15s ease;
+    }
+
+    .video-card:hover .thumbnail-container {
+        transform: scale(1.02);
+    }
+
+    .thumbnail-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .video-duration {
+        position: absolute;
+        bottom: 6px;
+        right: 6px;
+        background-color: rgba(0, 0, 0, 0.85);
+        color: #ffffff;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+    }
+
+    .video-info-grid {
+        display: grid;
+        grid-template-columns: 36px 1fr;
+        gap: 12px;
+        margin-top: 12px;
+        padding-right: 0;
+    }
+
+    .channel-icon-placeholder {
+        width: 36px;
+        height: 36px;
+        background-color: #ddd;
+        color: #0f0f0f;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        overflow: hidden;
+    }
+
+    .video-text {
+        overflow: hidden;
+    }
+
+    .video-title {
+        font-size: 1rem;
+        font-weight: 500;
+        line-height: 1.4rem;
+        color: #0f0f0f;
+        margin: 0 0 4px 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        word-break: break-word;
+    }
+
+    .video-meta {
+        font-size: 0.875rem;
+        color: #606060;
+        line-height: 1.3rem;
+    }
+
+    .video-meta span {
+        display: block;
+    }
+
+    .video-card:hover .video-title {
+        color: #000000;
+    }
+
+    @media (max-width: 600px) {
+        .home-grid {
+            grid-template-columns: 1fr;
+            padding: 0;
+            gap: 24px 0;
+        }
+        .thumbnail-container {
+            border-radius: 0;
+        }
+        .video-info-grid {
+            padding: 0 12px;
+        }
+    }
+
+    /* サイト情報モーダル */
+    .site-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+
+    .site-modal {
+        background: #ffffff;
+        width: 90%;
+        max-width: 500px;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        animation: fadeIn 0.2s ease;
+    }
+
+    .site-modal h3 {
+        margin: 0 0 12px 0;
+        font-size: 1.2rem;
+    }
+
+    .site-modal p {
+        margin: 0 0 8px 0;
+        font-size: 0.95rem;
+        color: #333;
+        line-height: 1.5;
+    }
+
+    .site-modal button {
+        margin-top: 16px;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 20px;
+        background: #0f0f0f;
+        color: #fff;
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+
+    .site-modal button:hover {
+        opacity: 0.85;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="home-container">
+    <h2 style="margin: 0 0 24px 16px; font-size: 1.1rem; font-weight: 600; color: #0f0f0f;">おすすめ</h2>
+    
+    <div class="home-grid">
+        {% for video in videos %}
+        <a href="/watch?v={{ video.videoId }}" class="video-card">
+            <div class="thumbnail-container">
+                <img src="/proxy/thumb?v={{ video.videoId }}" alt="{{ video.title }}" loading="lazy">
+                {% if video.lengthSeconds %}
+                <span class="video-duration">
+                    {% set mins = video.lengthSeconds // 60 %}
+                    {% set secs = video.lengthSeconds % 60 %}
+                    {{ mins }}:{{ "%02d" | format(secs) }}
+                </span>
+                {% endif %}
+            </div>
+            
+            <div class="video-info-grid">
+                <div class="channel-icon-placeholder">
+                    <span style="opacity: 0.7;">{{ video.author[0] if video.author else '🐟' }}</span>
+                </div>
+                <div class="video-text">
+                    <h3 class="video-title">{{ video.title }}</h3>
+                    <div class="video-meta">
+                        <span>{{ video.author }}</span>
+                        <span>{{ video.viewCountText }} • {{ video.publishedText }}</span>
+                    </div>
+                </div>
+            </div>
+        </a>
+        {% else %}
+        <div style="grid-column: 1 / -1; text-align: center; padding: 100px 0; color: #606060;">
+            <i class="fas fa-fish" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.2;"></i>
+            <p>動画が見つかりませんでした。</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- サイト情報モーダル -->
+<div class="site-modal-overlay" id="siteModal">
+    <div class="site-modal">
+        <h3>かつおTubeについて</h3>
+        <p>仙人と陽著辺子が共同開発したyotubeサイトだよ</p>
+        <p>仙人の情報</p>
+        <p>ぱどレット　https://padlet.com/xianrendesu/proxy-n0g1c0jl2ak3grc5</p>
+        <p>*aタグつけんのめんどかった</p>
+        <button onclick="document.getElementById('siteModal').style.display='none'">閉じる</button>
+    </div>
+</div>
+
+<script>
+window.addEventListener("load", function() {
+    document.getElementById("siteModal").style.display = "flex";
+});
+</script>
+
+{% endblock %}q
