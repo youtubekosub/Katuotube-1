@@ -17,7 +17,7 @@
 - **高画質 (Adaptive) モード:**
   - 映像と音声を別々のストリームで取得し、ブラウザ側で同期。最大4K（2160p）までの高解像度再生に対応。
 - **教育フィルタ回避:**
-  - YouTube Education APIや独自パラメータを適用し、制限の厳しいネットワーク内での再生成功率を向上。
+  - YouTube Education APIやしあわせパラメータを適用し、制限の厳しいネットワーク内での再生成功率を向上。
 - **統合ユーティリティ:**
   - **Downloader:** 動画情報の詳細解析および、動画・音声ファイルの抽出・保存。
   - **Web Proxy:** 指定したURLのHTMLを取得し、簡易的に表示するプロキシ機能。
@@ -43,7 +43,7 @@
 ```bash
 # リポジトリをクローン
 git clone [https://github.com/youtubekosub/Katuotube-1/](https://github.com/youtubekosub/Katuotube-1)
-cd choco-tube
+cd katuotube
 
 # 依存関係のインストール
-pip install -r requirements.txt
+自動
