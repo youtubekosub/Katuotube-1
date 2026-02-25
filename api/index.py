@@ -24,7 +24,7 @@ if not os.path.exists(template_dir):
 
 app = Flask(__name__, template_folder=template_dir)
 app.config['JSON_AS_ASCII'] = False
-app.secret_key = os.environ.get('SESSION_SECRET', os.environ.get('SECRET_KEY', 'katuotube-secret-key-2025'))
+app.secret_key = os.environ.get('SESSION_SECRET', os.environ.get('SECRET_KEY', 'katuotube-key'))
 
 # セッション設定
 app.config['SESSION_COOKIE_SECURE'] = os.environ.get('RENDER', False) or os.environ.get('FLASK_ENV') == 'production'
