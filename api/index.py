@@ -204,17 +204,7 @@ def login():
 @app.route('/')
 @login_required
 def index():
-    # トレンドデータの取得先をGitHubのJSONに変更
-    try:
-        res = http_session.get('https://raw.githubusercontent.com/siawaseok3/wakame/refs/heads/master/trend.json', timeout=3)
-        if res.status_code == 200:
-            videos = res.json()
-        else:
-            # 取得失敗時は空リストまたは従来のAPIをフォールバック
-            videos = request_invidious_api("/popular") or []
-    except Exception:
-        videos = request_invidious_api("/popular") or []
-
+    videos = request_invidious_api("/popular") or []
     theme = request.cookies.get('theme', 'dark')
     return render_template('home.html', videos=videos, theme=theme)
 
@@ -478,40 +468,36 @@ def high_quality_watch():
     adaptive = video_info.get("adaptiveFormats", [])
     video_url = None
     audio_url = None
+
+    for res in ["2160p", "1440p", "1080p", "720p"]:
+        v_stream = next((f for f in adaptive if f.get("resolution") == res and "video" in f.get("type", "")), None)
+        if v_stream:
+            # quoteを使用してURLエンコードを行い、プロキシを確実に通す
+            video_url = f"/proxy/video?url={quote(v_stream.get('url'))}"
+            break
+
+    a_stream = next((f for f in adaptive if f.get("audioQuality") == "AUDIO_QUALITY_MEDIUM"), 
+                    next((f for f in adaptive if "audio" in f.get("type", "")), None))
+    if a_stream and isinstance(a_stream, dict):
+        audio_url = f"/proxy/video?url={quote(a_stream.get('url'))}"
+
+    # HLS(m3u8)の取得ロジック
     m3u8_url = None
-
-    # モード判定によるロジック分岐
-    if preferred_mode == 'sync':
-        # 1080pを最優先、次点で高画質から順に検索
-        for res in ["1080p", "2160p", "1440p", "720p"]:
-            v_stream = next((f for f in adaptive if f.get("resolution") == res and "video" in f.get("type", "")), None)
-            if v_stream:
-                # quoteを使用してURLエンコードを行い、プロキシを確実に通す
-                video_url = f"/proxy/video?url={quote(v_stream.get('url'))}"
-                break
-
-        a_stream = next((f for f in adaptive if f.get("audioQuality") == "AUDIO_QUALITY_MEDIUM"), 
-                        next((f for f in adaptive if "audio" in f.get("type", "")), None))
-        if a_stream and isinstance(a_stream, dict):
-            audio_url = f"/proxy/video?url={quote(a_stream.get('url'))}"
-    
-    else:
-        # HLS(m3u8)の取得ロジック
-        try:
-            hls_res = requests.get(f"https://yudlp.vercel.app/m3u8/{v_id}", timeout=10)
-            hls_data = hls_res.json()
-            m3u8_formats = hls_data.get("m3u8_formats", [])
-            if m3u8_formats:
-                # 解像度（高さ）でソートして最高画質を取得
-                sorted_formats = sorted(
-                    m3u8_formats,
-                    key=lambda x: int(x.get("resolution", "0x0").split("x")[-1] if "x" in x.get("resolution", "") else 0),
-                    reverse=True
-                )
-                m3u8_url = sorted_formats[0].get("url")
-        except Exception:
-            # 取得失敗時は base_sources の m3u8 をフォールバックとして使用
-            m3u8_url = base_sources.get('m3u8')
+    try:
+        hls_res = requests.get(f"https://yudlp.vercel.app/m3u8/{v_id}", timeout=10)
+        hls_data = hls_res.json()
+        m3u8_formats = hls_data.get("m3u8_formats", [])
+        if m3u8_formats:
+            # 解像度（高さ）でソートして最高画質を取得
+            sorted_formats = sorted(
+                m3u8_formats,
+                key=lambda x: int(x.get("resolution", "0x0").split("x")[-1] if "x" in x.get("resolution", "") else 0),
+                reverse=True
+            )
+            m3u8_url = sorted_formats[0].get("url")
+    except Exception:
+        # 取得失敗時は base_sources の m3u8 をフォールバックとして使用
+        m3u8_url = base_sources.get('m3u8')
 
     return render_template('high.html', 
                            video_title=video_info.get('title', '高画質再生'),
