@@ -58,7 +58,7 @@ INVIDIOUS_INSTANCES = [
 ]
 
 M3U8_API = "https://yudlp.vercel.app/m3u8/"
-STREAM_API = "https://yudlp.vercel.app/stream/stream/"
+STREAM_API = "https://ytdlpinstance-vercel.vercel.app/stream/"
 EDU_VIDEO_API = "https://siawaseok.duckdns.org/api/video2/"
 
 EDU_PARAM_SOURCES = {
