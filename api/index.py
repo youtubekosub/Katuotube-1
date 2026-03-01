@@ -556,5 +556,9 @@ def bbs():
 def snowrider():
     return render_template('snowrider.html')
 
+@app.route('/padlet')
+def show_padlet():
+    return render_template('padlet.html')
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
