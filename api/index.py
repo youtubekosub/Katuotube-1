@@ -204,7 +204,17 @@ def login():
 @app.route('/')
 @login_required
 def index():
-    videos = request_invidious_api("/popular") or []
+    # トレンドデータの取得先をGitHubのJSONに変更
+    try:
+        res = http_session.get('https://raw.githubusercontent.com/siawaseok3/wakame/refs/heads/master/trend.json', timeout=3)
+        if res.status_code == 200:
+            videos = res.json()
+        else:
+            # 取得失敗時は空リストまたは従来のAPIをフォールバック
+            videos = request_invidious_api("/popular") or []
+    except Exception:
+        videos = request_invidious_api("/popular") or []
+
     theme = request.cookies.get('theme', 'dark')
     return render_template('home.html', videos=videos, theme=theme)
 
