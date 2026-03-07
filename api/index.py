@@ -635,5 +635,12 @@ def serve_game_files(game_id, path):
     """解凍された静的ファイルを配信する"""
     return send_from_directory(os.path.join(GAMES_DIR, game_id), path)
 
+@app.route('/github')
+def github_tool():
+    # URLパラメータ 'url' から共有されたGitHubのURLを取得（空の場合は空文字）
+    shared_url = request.args.get('url', '')
+    # templates/github.html をレンダリングし、パラメータを渡す
+    return render_template('github.html', shared_url=shared_url)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
