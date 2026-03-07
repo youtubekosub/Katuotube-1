@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .tool-container {
+        max-width: 700px;
+        margin: 40px auto;
+        padding: 30px;
+        background: var(--bg);
+        border: 1px solid #ccc;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        transition: background-color 0.2s, border-color 0.2s;
+    }
+    [data-theme="dark"] .tool-container {
+        border-color: #333;
+        background: #1e1e1e;
+    }
+    .input-group { margin-bottom: 25px; }
+    .input-group label { display: block; margin-bottom: 10px; font-weight: bold; font-size: 0.95rem; }
+    .input-group input {
+        width: 100%;
+        padding: 14px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        background: white;
+        color: black;
+        box-sizing: border-box;
+        font-size: 1rem;
+    }
+    [data-theme="dark"] .input-group input {
+        background: #2a2a2a;
+        border-color: #444;
+        color: white;
+    }
+    .input-group input:focus { border-color: var(--main); outline: none; box-shadow: 0 0 0 2px rgba(0,119,190,0.2); }
+    
+    .button-row {
+        display: flex;
+        gap: 12px;
+        margin-top: 10px;
+    }
+    .btn {
+        padding: 15px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.98); }
+    
+    .dl-btn {
+        flex: 2;
+        background: var(--main);
+        color: white;
+    }
+    .url-btn {
+        flex: 1;
+        background: #606060;
+        color: white;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn:disabled { background: #ccc; cursor: not-allowed; }
+
+    #status-area {
+        margin-top: 20px;
+        padding: 15px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        text-align: center;
+        display: none;
+    }
+    .status-msg { color: var(--main); font-weight: bold; }
+    
+    #share-box {
+        margin-top: 15px;
+        padding: 12px;
+        background: #eee;
+        border: 1px dashed #999;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        word-break: break-all;
+        display: none;
+    }
+    [data-theme="dark"] #share-box { background: #2a2a2a; border-color: #555; color: #ccc; }
+</style>
+
+<div class="tool-container">
+    <h2 style="margin-top: 0;"><i class="fab fa-github"></i> GitHub ZIP保存</h2>
+    <p style="font-size: 0.9rem; margin-bottom: 25px; opacity: 0.8;">リポジトリをZIP形式で直接ダウンロードします。API制限はありません。</p>
+
+    <div class="input-group">
+        <label>GitHub URL</label>
+        <input type="text" id="ghUrl" value="{{ shared_url }}" placeholder="https://github.com/owner/repo/tree/main/folder" spellcheck="false">
+    </div>
+
+    <div class="button-row">
+        <button id="mainDlBtn" class="btn dl-btn" onclick="executeDownload()">
+            <i class="fas fa-file-archive"></i> ZIPをダウンロード
+        </button>
+        <button class="btn url-btn" onclick="copyShareUrl()">
+            <i class="fas fa-link"></i> URL発行
+        </button>
+    </div>
+
+    <div id="status-area" class="status-msg"></div>
+    <div id="share-box"></div>
+</div>
+
+<script>
+    // 共有URLの発行とコピー
+    function copyShareUrl() {
+        const inputUrl = document.getElementById('ghUrl').value.trim();
+        if (!inputUrl) return alert("URLを入力してください");
+
+        const baseUrl = window.location.origin + window.location.pathname;
+        const finalShareUrl = `${baseUrl}?url=${encodeURIComponent(inputUrl)}`;
+        
+        const shareBox = document.getElementById('share-box');
+        shareBox.innerText = "共有URL: " + finalShareUrl;
+        shareBox.style.display = 'block';
+
+        navigator.clipboard.writeText(finalShareUrl).then(() => {
+            alert("共有用URLをクリップボードにコピーしました！");
+        });
+    }
+
+    // ダウンロード実行
+    function executeDownload() {
+        const rawUrl = document.getElementById('ghUrl').value.trim();
+        const status = document.getElementById('status-area');
+        
+        if (!rawUrl) return alert("URLを入力してください");
+
+        const regex = /github\.com\/([^/]+)\/([^/]+)(?:\/tree\/([^/]+))?/;
+        const match = rawUrl.match(regex);
+
+        if (!match) {
+            return alert("有効なGitHubリポジトリのURLを入力してください。");
+        }
+
+        const owner = match[1];
+        const repo = match[2].replace('.git', '');
+        const branch = match[3] || "main";
+
+        status.innerText = "🚀 GitHubからZIPを生成中...";
+        status.style.display = 'block';
+
+        const archiveUrl = `https://github.com/${owner}/${repo}/archive/refs/heads/${branch}.zip`;
+
+        const link = document.createElement('a');
+        link.href = archiveUrl;
+        link.download = `${repo}-${branch}.zip`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        setTimeout(() => {
+            status.innerText = "✅ ダウンロードを開始しました。";
+        }, 1500);
+    }
+</script>
+{% endblock %}
