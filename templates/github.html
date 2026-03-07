@@ -10,7 +10,6 @@
         border: 1px solid #ccc;
         border-radius: 12px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        transition: background-color 0.2s, border-color 0.2s;
     }
     [data-theme="dark"] .tool-container {
         border-color: #333;
@@ -33,7 +32,7 @@
         border-color: #444;
         color: white;
     }
-    .input-group input:focus { border-color: var(--main); outline: none; box-shadow: 0 0 0 2px rgba(0,119,190,0.2); }
+    .input-group input:focus { border-color: var(--main); outline: none; }
     
     .button-row {
         display: flex;
@@ -51,10 +50,8 @@
         align-items: center;
         justify-content: center;
         gap: 8px;
-        transition: opacity 0.2s, transform 0.1s;
+        transition: opacity 0.2s;
     }
-    .btn:active { transform: scale(0.98); }
-    
     .dl-btn {
         flex: 2;
         background: var(--main);
@@ -68,15 +65,29 @@
     .btn:hover { opacity: 0.9; }
     .btn:disabled { background: #ccc; cursor: not-allowed; }
 
-    #status-area {
-        margin-top: 20px;
-        padding: 15px;
-        border-radius: 8px;
-        font-size: 0.9rem;
-        text-align: center;
-        display: none;
+    /* 進捗表示 */
+    .progress-section { display: none; margin-top: 25px; }
+    .progress-wrapper {
+        width: 100%;
+        background: #e0e0e0;
+        border-radius: 10px;
+        height: 12px;
+        overflow: hidden;
     }
-    .status-msg { color: var(--main); font-weight: bold; }
+    [data-theme="dark"] .progress-wrapper { background: #333; }
+    .progress-fill {
+        width: 0%;
+        height: 100%;
+        background: var(--main);
+        transition: width 0.3s ease;
+    }
+    #status-text {
+        margin-top: 10px;
+        text-align: center;
+        font-size: 0.85rem;
+        color: #666;
+    }
+    [data-theme="dark"] #status-text { color: #aaa; }
     
     #share-box {
         margin-top: 15px;
@@ -92,78 +103,129 @@
 </style>
 
 <div class="tool-container">
-    <h2 style="margin-top: 0;"><i class="fab fa-github"></i> GitHub ZIP保存</h2>
-    <p style="font-size: 0.9rem; margin-bottom: 25px; opacity: 0.8;">リポジトリをZIP形式で直接ダウンロードします。API制限はありません。</p>
+    <h2 style="margin-top: 0;"><i class="fab fa-github"></i> GitHub Folder Downloader</h2>
+    <p style="font-size: 0.9rem; margin-bottom: 25px; opacity: 0.8;">リポジトリや特定のフォルダを構造を維持したままZIP化します。</p>
 
     <div class="input-group">
         <label>GitHub URL</label>
-        <input type="text" id="ghUrl" value="{{ shared_url }}" placeholder="https://github.com/owner/repo/tree/main/folder" spellcheck="false">
+        <input type="text" id="ghUrl" value="{{ shared_url }}" placeholder="https://github.com/owner/repo/tree/main/src" spellcheck="false">
     </div>
 
     <div class="button-row">
-        <button id="mainDlBtn" class="btn dl-btn" onclick="executeDownload()">
-            <i class="fas fa-file-archive"></i> ZIPをダウンロード
+        <button id="startBtn" class="btn dl-btn" onclick="startDownGit()">
+            <i class="fas fa-file-archive"></i> ZIPを作成してダウンロード
         </button>
         <button class="btn url-btn" onclick="copyShareUrl()">
             <i class="fas fa-link"></i> URL発行
         </button>
     </div>
 
-    <div id="status-area" class="status-msg"></div>
     <div id="share-box"></div>
+
+    <div class="progress-section" id="progressSection">
+        <div class="progress-wrapper">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div id="status-text">準備中...</div>
+    </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
 <script>
-    // 共有URLの発行とコピー
-    function copyShareUrl() {
-        const inputUrl = document.getElementById('ghUrl').value.trim();
-        if (!inputUrl) return alert("URLを入力してください");
-
-        const baseUrl = window.location.origin + window.location.pathname;
-        const finalShareUrl = `${baseUrl}?url=${encodeURIComponent(inputUrl)}`;
+    // 1. URL解析ロジック (DownGitのparseInfoに準拠)
+    function parseGitHubUrl(url) {
+        const urlObj = new URL(url);
+        const parts = urlObj.pathname.split("/").filter(p => p);
         
-        const shareBox = document.getElementById('share-box');
-        shareBox.innerText = "共有URL: " + finalShareUrl;
-        shareBox.style.display = 'block';
-
-        navigator.clipboard.writeText(finalShareUrl).then(() => {
-            alert("共有用URLをクリップボードにコピーしました！");
-        });
+        const info = {
+            author: parts[0],
+            repository: parts[1],
+            branch: parts[3] || "main",
+            resPath: parts.slice(4).join("/"),
+            rootName: parts[parts.length - 1] || parts[1]
+        };
+        
+        // APIのベースURLを作成
+        info.apiUrl = `https://api.github.com/repos/${info.author}/${info.repository}/git/trees/${info.branch}?recursive=1`;
+        return info;
     }
 
-    // ダウンロード実行
-    function executeDownload() {
-        const rawUrl = document.getElementById('ghUrl').value.trim();
-        const status = document.getElementById('status-area');
-        
-        if (!rawUrl) return alert("URLを入力してください");
+    // 2. 共有URL発行
+    function copyShareUrl() {
+        const url = document.getElementById('ghUrl').value.trim();
+        if (!url) return alert("URLを入力してください");
+        const finalUrl = `${window.location.origin}${window.location.pathname}?url=${encodeURIComponent(url)}`;
+        const box = document.getElementById('share-box');
+        box.innerText = "共有URL: " + finalUrl;
+        box.style.display = 'block';
+        navigator.clipboard.writeText(finalUrl);
+        alert("URLをコピーしました！");
+    }
 
-        const regex = /github\.com\/([^/]+)\/([^/]+)(?:\/tree\/([^/]+))?/;
-        const match = rawUrl.match(regex);
+    // 3. ダウンロード実行 (DownGitのロジックフロー)
+    async function startDownGit() {
+        const urlInput = document.getElementById('ghUrl').value.trim();
+        if (!urlInput) return alert("URLを入力してください");
 
-        if (!match) {
-            return alert("有効なGitHubリポジトリのURLを入力してください。");
+        const btn = document.getElementById('startBtn');
+        const section = document.getElementById('progressSection');
+        const fill = document.getElementById('progressFill');
+        const status = document.getElementById('status-text');
+
+        btn.disabled = true;
+        section.style.display = 'block';
+        fill.style.width = '0%';
+        status.innerText = "GitHub APIに接続中...";
+
+        try {
+            const info = parseGitHubUrl(urlInput);
+            const zip = new JSZip();
+
+            // ツリー全体を取得
+            const response = await fetch(info.apiUrl);
+            if (!response.ok) throw new Error("API制限か、リポジトリが見つかりません。");
+            const data = await response.json();
+
+            // 指定されたパス配下のファイル(blob)をフィルタリング
+            const targetFiles = data.tree.filter(item => 
+                item.path.startsWith(info.resPath) && item.type === "blob"
+            );
+
+            if (targetFiles.length === 0) throw new Error("対象のパスにファイルが見つかりません。");
+
+            // 各ファイルを順次ダウンロード (DownGitのgetFile相当)
+            for (let i = 0; i < targetFiles.length; i++) {
+                const file = targetFiles[i];
+                status.innerText = `取得中 (${i + 1}/${targetFiles.length}): ${file.path.split('/').pop()}`;
+                
+                const fileBlob = await fetch(file.url, {
+                    headers: { 'Accept': 'application/vnd.github.v3.raw' }
+                }).then(r => r.blob());
+
+                // フォルダ構造を維持するための相対パス計算
+                const relativePath = info.resPath 
+                    ? file.path.substring(info.resPath.length + 1) 
+                    : file.path;
+                
+                zip.file(relativePath || file.path, fileBlob);
+                
+                // 進捗更新
+                fill.style.width = `${((i + 1) / targetFiles.length) * 100}%`;
+            }
+
+            status.innerText = "ZIPを生成中...";
+            const content = await zip.generateAsync({ type: "blob" });
+            saveAs(content, `${info.rootName}.zip`);
+            status.innerText = "✅ ダウンロード完了！";
+
+        } catch (err) {
+            alert("エラー: " + err.message);
+            status.innerText = "エラーが発生しました。";
+        } finally {
+            btn.disabled = false;
         }
-
-        const owner = match[1];
-        const repo = match[2].replace('.git', '');
-        const branch = match[3] || "main";
-
-        status.innerText = "🚀 GitHubからZIPを生成中...";
-        status.style.display = 'block';
-
-        const archiveUrl = `https://github.com/${owner}/${repo}/archive/refs/heads/${branch}.zip`;
-
-        const link = document.createElement('a');
-        link.href = archiveUrl;
-        link.download = `${repo}-${branch}.zip`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        setTimeout(() => {
-            status.innerText = "✅ ダウンロードを開始しました。";
-        }, 1500);
     }
 </script>
 {% endblock %}
