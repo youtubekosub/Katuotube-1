@@ -532,6 +532,7 @@ def high_quality_watch():
                            fallback_url=base_sources.get('primary'),
                            preferred_mode=preferred_mode)
 
+
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
