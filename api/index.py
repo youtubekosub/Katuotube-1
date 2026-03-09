@@ -97,7 +97,8 @@ def login_required(f):
 def get_random_headers():
     return {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
 
-def request_invidious_api(path, timeout=(2, 4)):
+@lru_cache(maxsize=128)
+def request_invidious_api(path, timeout=(1.5, 2.5)):
     # 優先インスタンスを先頭にし、残りをシャッフル
     others = [i for i in INVIDIOUS_INSTANCES if i.rstrip('/') != PRIORITY_INSTANCE.rstrip('/')]
     random.shuffle(others)
@@ -128,7 +129,7 @@ def get_edu_params(source='siawaseok'):
 # --- 動画ソース取得 ---
 def fetch_api_data(url):
     try:
-        res = http_session.get(url, timeout=2.5)
+        res = http_session.get(url, timeout=1.8)
         return res.json() if res.status_code == 200 else None
     except:
         return None
@@ -142,31 +143,34 @@ def get_stream_url(video_id, edu_source='siawaseok', video_info=None):
         'education': f"https://www.youtubeeducation.com/embed/{video_id}?{edu_params}"
     }
 
-    # APIリクエストを並列実行して高速化
+    # APIリクエストを並列実行して高速化 (タイムアウトを厳格化)
     api_urls = [f"{M3U8_API}{video_id}", f"{STREAM_API}{video_id}"]
     with ThreadPoolExecutor(max_workers=2) as executor:
         future_to_url = {executor.submit(fetch_api_data, url): url for url in api_urls}
         
-        for future in as_completed(future_to_url):
-            url = future_to_url[future]
-            data = future.result()
-            if not data: continue
+        try:
+            for future in as_completed(future_to_url, timeout=2.5):
+                url = future_to_url[future]
+                data = future.result()
+                if not data: continue
 
-            if M3U8_API in url:
-                if data.get('m3u8_formats'):
-                    sources['m3u8'] = data['m3u8_formats'][0].get('url')
-                    sources['high'] = sources['m3u8']
-            elif STREAM_API in url:
-                formats = data.get('formats', [])
-                itag_18 = next((f.get('url') for f in formats if str(f.get('itag')) == '18'), None)
-                if itag_18:
-                    sources['primary'] = itag_18
-                elif formats:
-                    sources['primary'] = formats[0].get('url')
-                
-                for f in formats:
-                    if f.get('ext') == 'webm' and not sources['fallback']:
-                        sources['fallback'] = f.get('url')
+                if M3U8_API in url:
+                    if data.get('m3u8_formats'):
+                        sources['m3u8'] = data['m3u8_formats'][0].get('url')
+                        sources['high'] = sources['m3u8']
+                elif STREAM_API in url:
+                    formats = data.get('formats', [])
+                    itag_18 = next((f.get('url') for f in formats if str(f.get('itag')) == '18'), None)
+                    if itag_18:
+                        sources['primary'] = itag_18
+                    elif formats:
+                        sources['primary'] = formats[0].get('url')
+                    
+                    for f in formats:
+                        if f.get('ext') == 'webm' and not sources['fallback']:
+                            sources['fallback'] = f.get('url')
+        except:
+            pass
 
     # 外部APIで失敗した場合、Invidiousのデータを使用
     if not sources['m3u8'] and not sources['primary'] and video_info:
@@ -234,14 +238,17 @@ def watch():
     v_id = request.args.get('v')
     if not v_id: return redirect(url_for('index'))
     
-    # 高速化のため、Invidious APIとEDU APIを検討
-    video_info = request_invidious_api(f"/videos/{v_id}")
-    if not video_info:
-        try:
-            edu_res = http_session.get(f"{EDU_VIDEO_API}{v_id}", timeout=5)
-            video_info = edu_res.json()
-        except:
-            return redirect(f"/sub/watch?v={v_id}")
+    # 並列で動画情報とコメントを取得するように修正
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        info_future = executor.submit(request_invidious_api, f"/videos/{v_id}")
+        
+        video_info = info_future.result()
+        if not video_info:
+            try:
+                edu_res = http_session.get(f"{EDU_VIDEO_API}{v_id}", timeout=3)
+                video_info = edu_res.json()
+            except:
+                return redirect(f"/sub/watch?v={v_id}")
 
     edu_source = request.cookies.get('edu_source', 'siawaseok')
     sources = get_stream_url(v_id, edu_source, video_info)
@@ -252,8 +259,14 @@ def watch():
     if not sources.get('m3u8') and not sources.get('primary'):
          return redirect(f"/sub/watch?v={v_id}")
 
-    comments_data = request_invidious_api(f"/comments/{v_id}")
-    comments = comments_data.get('comments', []) if comments_data else []
+    # コメント取得は最後に回し、失敗しても続行
+    comments = []
+    try:
+        comments_data = request_invidious_api(f"/comments/{v_id}", timeout=(1.0, 1.5))
+        if comments_data:
+            comments = comments_data.get('comments', [])
+    except:
+        pass
     
     theme = request.cookies.get('theme', 'dark')
     
